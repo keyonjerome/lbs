@@ -1,0 +1,80 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Update requirements",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} -m pip freeze | grep ^(?!-e ) > requirements.txt",
+            "windows": {
+                // PowerShell <6.0 does append BOM to the output-file. This confuses git. Use ASCII instead
+                "command": "${command:python.interpreterPath} -m pip freeze | Where-Object { $_ -NotMatch '^-e ' } | Out-File -Encoding ASCII '.\\requirements.txt'"
+            },
+            "problemMatcher": [],
+        },
+        {
+            "label": "Installation",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} -m pip install -e .",
+            "windows": {
+                "command": "${command:python.interpreterPath} -m pip install -e .",
+            },
+            "problemMatcher": [],
+        },
+        {
+            "label": "Autoformat using Black",
+            "type": "shell",
+            // Line-length parameter should match the .pylintrc's max-line-length configurations
+            "command": "${command:python.interpreterPath} -m black --line-length=100 $(git rev-parse --show-toplevel)",
+            "windows": {
+                "command": "${command:python.interpreterPath} -m black --line-length=100 $(git rev-parse --show-toplevel)",
+            },
+            "problemMatcher": [],
+            "dependsOn": [],
+        },
+        {
+            "label": "Linting",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} -m pylint --rcfile=.pylintrc tests src setup.py",
+            "windows": {
+                "command": "${command:python.interpreterPath} -m pylint --rcfile=.pylintrc tests src setup.py",
+            },
+            "problemMatcher": [],
+            "dependsOn": ["Autoformat using Black"],
+        },
+        {
+            "label": "Mypy type checking",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} -m mypy $(git rev-parse --show-toplevel)",
+            "windows": {
+                "command": "${command:python.interpreterPath} -m mypy $(git rev-parse --show-toplevel)",
+            },
+            "problemMatcher": [],
+            "dependsOn": [],
+        },
+        {
+            "label": "Unit testing",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} -m tox .",
+            "windows": {
+                "command": "${command:python.interpreterPath} -m tox .",
+            },
+            "problemMatcher": [],
+            "dependsOn": [],
+        },
+        {
+            "label": "Local build",
+            "type": "shell",
+            "dependsOn": ["Installation", "Local build-triggers"],
+            "dependsOrder": "sequence",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Local build-triggers",
+            "type": "shell",
+            "dependsOn": ["Unit testing", "Linting", "Mypy type checking"],
+        },
+    ]
+}
